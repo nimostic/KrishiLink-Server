@@ -26,7 +26,6 @@ app.get("/", (req, res) => {
 async function run() {
   try {
     // await client.connect();
-   
 
     const db = client.db("krishi");
     const usersCollection = db.collection("users");
@@ -46,20 +45,32 @@ async function run() {
       res.send(crops);
     });
 
-    //latest 6 crops 
-    app.get('/latest-crops',async(req,res)=>{
-      const latestCrops = (await cropsCollection.find().sort({createdAt: -1 }).limit(6).toArray())
-      res.send(latestCrops)
-    })
+    //latest 6 crops
+    app.get("/latest-crops", async (req, res) => {
+      const latestCrops = await cropsCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .toArray();
+      res.send(latestCrops);
+    });
 
-     console.log(
+    //my posts
+
+    app.get("/my-posts", async (req, res) => {
+      const email = req.query.email;
+      const myPosts = await cropsCollection
+        .find({ "owner.ownerEmail": email })
+        .toArray();
+      res.send(myPosts);
+    });
+
+    console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
-  }
-   finally {
+  } finally {
     // await client.close();
   }
-
 }
 run().catch(console.dir);
 
