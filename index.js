@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 //mongodb connection
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gubl8vg.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -45,6 +45,17 @@ async function run() {
       res.send(crops);
     });
 
+    // search a crop
+    app.get("/search", async (req, res) => {
+      const search_text = req.query.search;
+      const result = await cropsCollection
+        .find({
+          name: { $regex: search_text, $options: "i" },
+        })
+        .toArray();
+      res.send(result);
+    });
+
     //latest 6 crops
     app.get("/latest-crops", async (req, res) => {
       const latestCrops = await cropsCollection
@@ -56,14 +67,22 @@ async function run() {
     });
 
     //my posts
-
     app.get("/my-posts", async (req, res) => {
       const email = req.query.email;
       const myPosts = await cropsCollection
         .find({ "owner.ownerEmail": email })
+        .sort({ createdAt: -1 })
         .toArray();
       res.send(myPosts);
     });
+
+    //delete crop from my posts
+    app.delete('/delete/:id',async (req,res)=>{
+      const {id} = req.params
+      const result = await cropsCollection.deleteOne({_id : new ObjectId(id)})
+      res.send(result)
+    })
+
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
