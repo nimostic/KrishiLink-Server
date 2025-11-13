@@ -35,6 +35,7 @@ async function run() {
     app.post("/crops", async (req, res) => {
       const crop = req.body;
       console.log(crop);
+      crop.interests = []
       const result = await cropsCollection.insertOne(crop);
       res.send(result);
     });
@@ -42,16 +43,24 @@ async function run() {
     //send a interest form
     app.post("/interests", async (req, res) => {
       // console.log(req.body);
-      const { crop, interestData } = req.body;
-      console.log({ crop, interestData });
+      const interestData = req.body;
+      console.log( interestData);
       try {
-        const query = { _id: new ObjectId(crop._id) };
+        const query = { _id: new ObjectId(interestData.cropId) };
         const update = {
           $push: { interests: interestData },
         };
 
-        // checking dupliacate interest send
+        // Find the crop
         const existingCrop = await cropsCollection.findOne(query);
+        
+        console.log(existingCrop);
+        
+        if (!Array.isArray(existingCrop.interests)) {
+          existingCrop.interests = [];
+        }
+        
+        // checking dupliacate interest send
         const alreadyInterested = existingCrop.interests?.find(
           (i) => i.buyerEmail === interestData.buyerEmail
         );
@@ -135,6 +144,19 @@ async function run() {
       } catch (error) {
         res.status(500).send({ error: error.message });
       }
+    });
+
+    //my interests
+
+    app.get("/my-interests/:email", async (req, res) => {
+      const { email } = req.params;
+      const crops = await cropsCollection
+        .find({
+          // interests: { $exists: true, $type: "array" },
+        "interests.buyerEmail": email,
+        })
+        .toArray();
+      res.send(crops);
     });
 
     console.log(
