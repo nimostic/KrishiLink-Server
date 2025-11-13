@@ -35,7 +35,7 @@ async function run() {
     app.post("/crops", async (req, res) => {
       const crop = req.body;
       console.log(crop);
-      crop.interests = []
+      crop.interests = [];
       const result = await cropsCollection.insertOne(crop);
       res.send(result);
     });
@@ -44,7 +44,7 @@ async function run() {
     app.post("/interests", async (req, res) => {
       // console.log(req.body);
       const interestData = req.body;
-      console.log( interestData);
+      console.log(interestData);
       try {
         const query = { _id: new ObjectId(interestData.cropId) };
         const update = {
@@ -53,13 +53,13 @@ async function run() {
 
         // Find the crop
         const existingCrop = await cropsCollection.findOne(query);
-        
+
         console.log(existingCrop);
-        
+
         if (!Array.isArray(existingCrop.interests)) {
           existingCrop.interests = [];
         }
-        
+
         // checking dupliacate interest send
         const alreadyInterested = existingCrop.interests?.find(
           (i) => i.buyerEmail === interestData.buyerEmail
@@ -153,10 +153,38 @@ async function run() {
       const crops = await cropsCollection
         .find({
           // interests: { $exists: true, $type: "array" },
-        "interests.buyerEmail": email,
+          "interests.buyerEmail": email,
         })
         .toArray();
       res.send(crops);
+    });
+
+    //status change
+    app.patch("/crops/:cropId/interests", async (req, res) => {
+      const { cropId } = req.params;
+      const { buyerEmail, status } = req.body;
+
+      try {
+        const query = {
+          _id: new ObjectId(cropId),
+          "interests.buyerEmail": buyerEmail,
+        };
+        const update = {
+          $set: {
+            "interests.$.status": status,
+          },
+        };
+
+        const result = await cropsCollection.updateOne(query, update);
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).send("interest not found");
+        }
+        res.send({ message: "Interest status updated successfully", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ error: error.message });
+      }
     });
 
     console.log(
